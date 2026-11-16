@@ -1384,6 +1384,8 @@ main { margin-top: 20px; }
 
 <button id="tab-accounts" onclick="showAccounts()">🧾 Cuentas</button>
 
+<button id="tab-sales" onclick="showSales()">📊 Ventas y Excel</button>
+
 </div>
 
 <div id="kitchen-main">
@@ -1410,6 +1412,19 @@ main { margin-top: 20px; }
 
 <div id="table-accounts" class="account-grid"></div>
 
+</div>
+
+<div id="sales-panel" class="hidden">
+  <h2>📊 Reporte de ventas</h2>
+  <p class="muted">El reporte incluye todos los pedidos registrados, tanto pagados como pendientes de pago.</p>
+  <div id="sales-summary" class="account-grid"></div>
+  <div class="panel" style="margin-top:16px">
+    <p><b>Excel de ventas</b></p>
+    <p class="muted">El archivo tendrá un resumen por producto y el detalle de cada pedido, con su estado de pago.</p>
+    <button class="primary" onclick="exportSalesExcel()">⬇️ Descargar Excel (.xlsx)</button>
+    <button class="secondary" onclick="refreshSalesReport()">↻ Actualizar reporte</button>
+  </div>
+  <div id="sales-products" class="panel" style="margin-top:16px"></div>
 </div>
 
 </section>
@@ -1643,6 +1658,7 @@ Esta versión es una demostración: no procesa pagos ni solicita datos de tarjet
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 const SUPABASE_URL = "https://rwfucqglmjaryeergezo.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_gCfMCwsiWBniMeqsJTRkVA_jJHRH6Kj";
@@ -2506,6 +2522,7 @@ try {
         return {
             id: row.id,
             number: row.id,
+            createdAt: row.created_at || null,
             table: Number(row.table_number),
             items: Array.isArray(details.items) ? details.items : [],
             total: Number(details.total || 0),
@@ -2572,10 +2589,12 @@ function showKitchenHome() {
 $("kitchen-main").classList.remove("hidden");
 
 $("accounts-panel").classList.add("hidden");
+$("sales-panel").classList.add("hidden");
 
 $("tab-home").classList.add("active");
 
 $("tab-accounts").classList.remove("active");
+$("tab-sales").classList.remove("active");
 
 renderKitchen();
 
@@ -2584,15 +2603,117 @@ renderKitchen();
 function showAccounts() {
 
 $("kitchen-main").classList.add("hidden");
+$("sales-panel").classList.add("hidden");
 
 $("accounts-panel").classList.remove("hidden");
 
 $("tab-home").classList.remove("active");
+$("tab-sales").classList.remove("active");
 
 $("tab-accounts").classList.add("active");
 
 renderAccounts();
 
+}
+
+function showSales() {
+  $("kitchen-main").classList.add("hidden");
+  $("accounts-panel").classList.add("hidden");
+  $("sales-panel").classList.remove("hidden");
+  $("tab-home").classList.remove("active");
+  $("tab-accounts").classList.remove("active");
+  $("tab-sales").classList.add("active");
+  renderSalesReport();
+}
+
+async function refreshSalesReport() {
+  try {
+    await refreshKitchenData();
+    renderSalesReport();
+  } catch (error) {
+    console.error("Error actualizando ventas:", error);
+    alert("No se pudo actualizar el reporte. Revisa la conexión.");
+  }
+}
+
+function getSalesData() {
+  const products = new Map();
+  const details = [];
+  let paidTotal = 0;
+  let pendingTotal = 0;
+  let orderCount = 0;
+
+  orders.forEach(order => {
+    orderCount++;
+    const isPaid = Boolean(order.paid);
+    if (isPaid) paidTotal += Number(order.total || 0);
+    else pendingTotal += Number(order.total || 0);
+    const date = order.createdAt ? new Date(order.createdAt) : null;
+    const dateText = date && !isNaN(date) ? date.toLocaleString("es-CO") : (order.time || "");
+
+    (order.items || []).forEach(item => {
+      const name = item.name || "Producto sin nombre";
+      const quantity = Number(item.quantity || 0);
+      const unitPrice = Number(item.price || 0);
+      const subtotal = quantity * unitPrice;
+      if (!products.has(name)) products.set(name, {product:name, quantity:0, orders:0, total:0, paid:0, pending:0});
+      const row = products.get(name);
+      row.quantity += quantity;
+      row.orders += 1;
+      row.total += subtotal;
+      if (isPaid) row.paid += subtotal; else row.pending += subtotal;
+      details.push({
+        "Fecha": dateText, "Pedido": order.number, "Mesa": order.table,
+        "Producto": name, "Cantidad": quantity, "Precio unitario": unitPrice,
+        "Subtotal": subtotal, "Estado del pedido": order.status || "Sin estado",
+        "Estado de pago": isPaid ? "Pagado" : "Pendiente",
+        "Extras": (item.extras || []).join(", "), "Notas": item.notes || ""
+      });
+    });
+  });
+
+  return {products:[...products.values()].sort((a,b)=>a.product.localeCompare(b.product,"es")), details, paidTotal, pendingTotal, orderCount};
+}
+
+function renderSalesReport() {
+  const data = getSalesData();
+  const quantity = data.products.reduce((sum,p)=>sum+p.quantity,0);
+  $("sales-summary").innerHTML = `
+    <div class="panel"><span class="muted">Pedidos registrados</span><h2>${data.orderCount}</h2></div>
+    <div class="panel"><span class="muted">Unidades solicitadas</span><h2>${quantity}</h2></div>
+    <div class="panel"><span class="muted">Valor de pedidos pagados</span><h2>${money(data.paidTotal)}</h2></div>
+    <div class="panel"><span class="muted">Valor pendiente de pago</span><h2>${money(data.pendingTotal)}</h2></div>`;
+
+  $("sales-products").innerHTML = data.products.length ? `
+    <h3>Productos solicitados</h3>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;text-align:left">
+      <thead><tr><th style="padding:9px">Producto</th><th style="padding:9px">Cantidad</th><th style="padding:9px">Total</th><th style="padding:9px">Pagado</th><th style="padding:9px">Pendiente</th></tr></thead>
+      <tbody>${data.products.map(p=>`<tr><td style="padding:9px;border-top:1px solid var(--line)">${p.product}</td><td style="padding:9px;border-top:1px solid var(--line)">${p.quantity}</td><td style="padding:9px;border-top:1px solid var(--line)">${money(p.total)}</td><td style="padding:9px;border-top:1px solid var(--line)">${money(p.paid)}</td><td style="padding:9px;border-top:1px solid var(--line)">${money(p.pending)}</td></tr>`).join("")}</tbody>
+    </table></div>` : '<p class="muted">Todavía no hay productos registrados en los pedidos.</p>';
+}
+
+function exportSalesExcel() {
+  if (typeof XLSX === "undefined") {
+    alert("No se pudo cargar el generador de Excel. Revisa tu conexión a internet e inténtalo de nuevo.");
+    return;
+  }
+  const data = getSalesData();
+  const summary = data.products.map(p => ({
+    "Producto":p.product, "Cantidad total solicitada":p.quantity, "Número de líneas de pedido":p.orders,
+    "Valor total solicitado":p.total, "Valor pagado":p.paid, "Valor pendiente":p.pending
+  }));
+  summary.push({"Producto":"TOTAL GENERAL", "Cantidad total solicitada":data.products.reduce((s,p)=>s+p.quantity,0),
+    "Número de líneas de pedido":"", "Valor total solicitado":data.paidTotal+data.pendingTotal,
+    "Valor pagado":data.paidTotal, "Valor pendiente":data.pendingTotal});
+  const wb = XLSX.utils.book_new();
+  const wsSummary = XLSX.utils.json_to_sheet(summary);
+  const wsDetails = XLSX.utils.json_to_sheet(data.details.length ? data.details : [{"Información":"No hay pedidos registrados"}]);
+  wsSummary["!cols"] = [{wch:28},{wch:22},{wch:25},{wch:22},{wch:18},{wch:18}];
+  wsDetails["!cols"] = [{wch:22},{wch:16},{wch:10},{wch:28},{wch:12},{wch:18},{wch:18},{wch:20},{wch:18},{wch:30},{wch:35}];
+  XLSX.utils.book_append_sheet(wb, wsSummary, "Resumen por producto");
+  XLSX.utils.book_append_sheet(wb, wsDetails, "Detalle de pedidos");
+  const today = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `reporte_ventas_sabor_digital_${today}.xlsx`);
 }
 
 function renderKitchen() {
@@ -2769,4 +2890,4 @@ init();
 
 </body>
 
-</html>
+</html
