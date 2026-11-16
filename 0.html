@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#241914">
+<title>Sabor Digital | Pedidos y reservas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--ink:#261a15;--brown:#4a2b20;--orange:#e85b2a;--orange2:#c94720;--cream:#fff8f2;--muted:#826f65;--line:#edddd2;--green:#16834a}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 85% 0,#ffe2cf 0,transparent 28rem),#fffaf6;color:var(--ink);font-family:"DM Sans",sans-serif}
+header{background:linear-gradient(115deg,#211713,#48281c 65%,#8f3c20);color:white;padding:14px 22px;box-shadow:0 8px 26px #3a211522;position:sticky;top:0;z-index:5}
+.head{max-width:1080px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:14px}.brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:1.4px}.brand img{width:48px;height:48px;object-fit:contain;border-radius:13px;background:#ffffff18;padding:3px}.tag{font-size:12px;color:#f6c6a9;letter-spacing:1px}
+main{max-width:1080px;margin:32px auto;padding:0 18px 80px}.hero{text-align:center;padding:42px 18px 35px}.eyebrow{color:var(--orange2);font-size:12px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase}.hero h1{font:800 clamp(32px,6vw,54px)/1.08 "Playfair Display",serif;margin:12px 0}.hero p{color:var(--muted);max-width:560px;margin:0 auto;line-height:1.7}
+.home-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;max-width:790px;margin:20px auto}.choice{border:1px solid var(--line);border-radius:24px;padding:30px 25px;background:#fff;box-shadow:0 14px 38px #48291a0d;text-align:left;cursor:pointer;transition:.25s;min-height:205px;position:relative;overflow:hidden}.choice:hover{transform:translateY(-5px);box-shadow:0 20px 42px #48291a18;border-color:#e7b89c}.choice .emoji{font-size:38px}.choice h2{margin:15px 0 7px;font-size:21px}.choice p{color:var(--muted);line-height:1.55;margin:0}.choice .arrow{position:absolute;right:22px;bottom:20px;color:var(--orange);font-size:23px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:22px;padding:clamp(18px,3vw,30px);box-shadow:0 12px 34px #48291a0b;animation:rise .35s ease}.hidden{display:none!important}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}.panel-head h2{margin:0;font:700 27px "Playfair Display",serif}.back{border:0;background:#f5eae2;color:#5c4031;border-radius:11px;padding:10px 14px;font-weight:700;cursor:pointer}
+.categories{display:flex;gap:8px;overflow:auto;padding:3px 0 15px}.cat{white-space:nowrap;border:1px solid var(--line);background:#fff8f2;color:#684838;padding:10px 14px;border-radius:99px;font-weight:700;cursor:pointer}.cat.active{background:var(--brown);color:#fff;border-color:var(--brown)}
+.menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.food{display:grid;grid-template-columns:112px 1fr;gap:13px;padding:12px;border:1px solid #efe2d9;border-radius:17px;background:#fff;min-width:0;transition:.2s}.food:hover{border-color:#e9b99e;transform:translateY(-2px)}.food img{width:112px;height:112px;object-fit:cover;border-radius:12px;background:#f5e9df}.food h3{font-size:15px;margin:2px 0 5px}.food p{font-size:12px;color:var(--muted);line-height:1.45;margin:0 0 8px}.price{font-weight:800;color:var(--orange2);font-size:15px}.food-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px}.qty{display:flex;align-items:center;gap:8px}.qty button{width:29px;height:29px;border:0;border-radius:9px;background:#f8e9df;color:#713c25;font-weight:800;font-size:17px;cursor:pointer}.qty span{font-weight:800;min-width:12px;text-align:center}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{display:flex;flex-direction:column;gap:7px}.field.full{grid-column:1/-1}.field label{font-size:13px;font-weight:800;color:#594236}.field input,.field textarea,.field select{width:100%;border:1px solid #e6d4c8;background:#fffdfa;border-radius:12px;padding:13px 14px;font:inherit;color:var(--ink);outline:none}.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--orange);box-shadow:0 0 0 3px #e85b2a18}.field textarea{min-height:88px;resize:vertical}
+.cart-summary{margin:20px 0 15px;padding:16px;border-radius:15px;background:#fff7f0;border:1px solid #f0dfd2}.cart-summary h3{margin:0 0 8px}.cart-line{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px}.total{border-top:1px solid #ead6c8;margin-top:8px;padding-top:10px;display:flex;justify-content:space-between;font-weight:800;font-size:18px}
+.primary{border:0;border-radius:13px;padding:14px 19px;background:linear-gradient(135deg,#ef7540,#d94720);color:white;font:800 15px "DM Sans";cursor:pointer;box-shadow:0 7px 17px #d947202b;transition:.2s}.primary:hover{transform:translateY(-2px);filter:brightness(1.04)}.whatsapp{background:linear-gradient(135deg,#1dbd68,#0b8f4a);box-shadow:0 7px 17px #16834a2b}.submit-row{display:flex;justify-content:flex-end;margin-top:16px}.hint{font-size:12px;color:var(--muted);line-height:1.5;margin-top:12px}.empty{color:var(--muted);padding:18px;text-align:center}
+footer{text-align:center;color:#9a877c;font-size:12px;padding:28px}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:760px){main{margin-top:14px;padding:0 13px 60px}.hero{padding:34px 8px 25px}.home-actions{gap:11px}.choice{padding:21px 17px;min-height:185px}.choice h2{font-size:18px}.menu-grid{grid-template-columns:1fr}.food{grid-template-columns:100px 1fr}.food img{width:100px;height:105px}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.panel-head h2{font-size:23px}}
+@media(max-width:390px){.home-actions{grid-template-columns:1fr}.choice{min-height:150px}.brand{font-size:13px}.tag{font-size:10px}}
+</style>
+</head>
+<body>
+<header><div class="head"><div class="brand"><img src="imagenes/logo-sabor-digital.png" alt="Sabor Digital"><div>SABOR DIGITAL<div class="tag">PEDIDOS & RESERVAS</div></div></div><span class="tag">ATENCIÓN EN LÍNEA</span></div></header>
+<main>
+<section id="home">
+  <div class="hero"><div class="eyebrow">Bienvenido</div><h1>¿Qué deseas hacer hoy?</h1><p>Disfruta nuestros sabores desde donde estés o reserva tu mesa para compartir un buen momento.</p></div>
+  <div class="home-actions">
+    <button class="choice" onclick="openDelivery()"><span class="emoji">🛵</span><h2>Pedir a domicilio</h2><p>Elige tus productos favoritos y recibe tu pedido en casa.</p><span class="arrow">→</span></button>
+    <button class="choice" onclick="openReservation()"><span class="emoji">🍽️</span><h2>Hacer una reserva</h2><p>Separa tu mesa indicando cuántas personas asistirán y a qué hora.</p><span class="arrow">→</span></button>
+  </div>
+</section>
+
+<section id="delivery" class="panel hidden">
+  <div class="panel-head"><h2>🛵 Pedido a domicilio</h2><button class="back" onclick="goHome()">← Volver</button></div>
+  <div class="categories" id="categories"></div>
+  <div id="menu-grid" class="menu-grid"></div>
+  <div class="cart-summary"><h3>Tu pedido</h3><div id="cart-lines" class="empty">Todavía no has agregado productos.</div><div class="total"><span>Total</span><span id="cart-total">$0</span></div></div>
+  <h3>Datos de entrega</h3>
+  <div class="form-grid">
+    <div class="field"><label for="delivery-name">Nombre completo</label><input id="delivery-name" autocomplete="name" placeholder="Tu nombre" required></div>
+    <div class="field"><label for="delivery-phone">Celular</label><input id="delivery-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Tu número de celular" required></div>
+    <div class="field full"><label for="delivery-address">Dirección de entrega</label><input id="delivery-address" autocomplete="street-address" placeholder="Calle, carrera, barrio, casa/apto" required></div>
+    <div class="field full"><label for="delivery-description">Descripción / indicaciones</label><textarea id="delivery-description" placeholder="Punto de referencia, indicaciones especiales o notas del pedido"></textarea></div>
+  </div>
+  <div class="submit-row"><button class="primary whatsapp" onclick="sendDelivery()">Enviar pedido por WhatsApp ↗</button></div>
+  <p class="hint">Al pulsar el botón se abrirá WhatsApp con el resumen del pedido listo para enviar. El pedido solo se recibe cuando lo envías desde WhatsApp.</p>
+</section>
+
+<section id="reservation" class="panel hidden">
+  <div class="panel-head"><h2>🍽️ Hacer una reserva</h2><button class="back" onclick="goHome()">← Volver</button></div>
+  <p style="color:var(--muted);margin-top:-8px">Completa los datos para solicitar tu mesa.</p>
+  <div class="form-grid">
+    <div class="field"><label for="res-people">¿Cuántas personas son?</label><select id="res-people"><option value="">Selecciona</option><option>1 persona</option><option>2 personas</option><option>3 personas</option><option>4 personas</option><option>5 personas</option><option>6 personas</option><option>7 personas</option><option>8 personas</option><option>9 personas</option><option>10 personas</option><option>Más de 10 personas</option></select></div>
+    <div class="field"><label for="res-phone">Celular</label><input id="res-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Tu número de celular"></div>
+    <div class="field"><label for="res-date">Día de la reserva</label><input id="res-date" type="date"></div>
+    <div class="field"><label for="res-time">Hora de llegada</label><input id="res-time" type="time"></div>
+  </div>
+  <div class="submit-row"><button class="primary whatsapp" onclick="confirmReservation()">Confirmar reserva ↗</button></div>
+  <p class="hint">La solicitud se abrirá en WhatsApp para que el restaurante pueda confirmar la disponibilidad de la mesa.</p>
+</section>
+</main>
+<footer>© Sabor Digital · Gracias por elegirnos</footer>
+<script>
+const SUPABASE_URL = "https://rwfucqglmjaryeergezo.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_gCfMCwsiWBniMeqsJTRkVA_jJHRH6Kj";
+const WHATSAPP_NUMBER = "573001234567"; // Número ficticio provisional: reemplazar por el WhatsApp real del restaurante.
+const sb = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const defaultMenu = [
+
+{
+
+id:1,
+
+image:"imagenes/hamburguesa1.jpg",
+
+name:"Hamburguesa clásica",
+
+category:"🍔 Hamburguesas",
+
+price:18000,
+
+icon:"🍔",
+
+description:"Pan suave, carne de res, queso, lechuga, tomate, cebolla y salsa especial.",
+
+extras:["Sin cebolla","Sin tomate","Queso extra (+$3.000)"]
+
+},
+
+{
+
+id:2,
+
+image:"imagenes/hamburguesa2.jpg",
+
+name:"Hamburguesa BBQ",
+
+category:"🍔 Hamburguesas",
+
+price:22000,
+
+icon:"🍔",
+
+description:"Pan artesanal, carne de res, queso cheddar, tocineta, cebolla caramelizada y salsa BBQ.",
+
+extras:["Sin cebolla","Queso extra (+$3.000)","Sin salsa BBQ"]
+
+},
+
+{
+
+id:3,
+
+image:"imagenes/hamburguesa3.jpg",
+
+name:"Hamburguesa doble",
+
+category:"🍔 Hamburguesas",
+
+price:28000,
+
+icon:"🍔",
+
+description:"Pan artesanal, doble carne de res, doble queso, lechuga, tomate y salsa de la casa.",
+
+extras:["Sin tomate","Queso extra (+$3.000)","Sin salsa"]
+
+},
+
+{
+
+id:4,
+
+image:"imagenes/pizza1.jpg",
+
+name:"Pizza de pepperoni",
+
+category:"🍕 Pizzas",
+
+price:22000,
+
+icon:"🍕",
+
+description:"Masa horneada, salsa de tomate, queso mozzarella y pepperoni.",
+
+extras:["Extra queso (+$3.000)","Sin pepperoni","Orilla tradicional"]
+
+},
+
+{
+
+id:5,
+
+image:"imagenes/pizza2.jpg",
+
+name:"Pizza hawaiana",
+
+category:"🍕 Pizzas",
+
+price:24000,
+
+icon:"🍕",
+
+description:"Masa horneada, salsa de tomate, mozzarella, jamón y piña.",
+
+extras:["Extra queso (+$3.000)","Sin piña","Sin jamón"]
+
+},
+
+{
+
+id:6,
+
+image:"imagenes/pizza3.jpg",
+
+name:"Pizza de pollo",
+
+category:"🍕 Pizzas",
+
+price:25000,
+
+icon:"🍕",
+
+description:"Masa horneada, salsa de tomate, mozzarella, pollo desmechado y maíz.",
+
+extras:["Extra queso (+$3.000)","Sin maíz","Extra pollo (+$4.000)"]
+
+},
+
+{
+
+id:7,
+
+image:"imagenes/perro1.jpg",
+
+name:"Perro tradicional",
+
+category:"🌭 Perros calientes",
+
+price:15000,
+
+icon:"🌭",
+
+description:"Pan suave, salchicha, papas trituradas, salsa de tomate, mayonesa y mostaza.",
+
+extras:["Sin mostaza","Sin mayonesa","Queso extra (+$2.000)"]
+
+},
+
+{
+
+id:8,
+
+image:"imagenes/perro2.jpg",
+
+name:"Perro especial",
+
+category:"🌭 Perros calientes",
+
+price:19000,
+
+icon:"🌭",
+
+description:"Pan suave, salchicha, queso, tocineta, papas trituradas y salsas de la casa.",
+
+extras:["Sin tocineta","Queso extra (+$2.000)","Sin salsa"]
+
+},
+
+{
+
+id:9,
+
+image:"imagenes/perro3.jpg",
+
+name:"Perro hawaiano",
+
+category:"🌭 Perros calientes",
+
+price:20000,
+
+icon:"🌭",
+
+description:"Pan suave, salchicha, jamón, piña, queso mozzarella y salsas especiales.",
+
+extras:["Sin piña","Sin jamón","Queso extra (+$2.000)"]
+
+},
+
+{
+
+id:10,
+
+image:"imagenes/papas1.jpg",
+
+name:"Papas a la francesa",
+
+category:"🍟 Acompañamientos",
+
+price:9000,
+
+icon:"🍟",
+
+description:"Bastones de papa fritos y ligeramente salados, servidos calientes.",
+
+extras:["Sin sal","Salsa de tomate","Mayonesa"]
+
+},
+
+{
+
+id:11,
+
+image:"imagenes/papas2.jpg",
+
+name:"Papas especiales",
+
+category:"🍟 Acompañamientos",
+
+price:14000,
+
+icon:"🍟",
+
+description:"Papas fritas cubiertas con queso derretido, tocineta y salsa especial.",
+
+extras:["Sin tocineta","Queso extra (+$2.000)","Salsa aparte"]
+
+},
+
+{
+
+id:12,
+
+image:"imagenes/nuggets1.jpg",
+
+name:"Nuggets de pollo",
+
+category:"🍟 Acompañamientos",
+
+price:13000,
+
+icon:"🍗",
+
+description:"Trozos de pollo apanados y crujientes, acompañados de salsa de tomate.",
+
+extras:["Sin salsa","Mayonesa","Salsa BBQ"]
+
+},
+
+{
+
+id:13,
+
+image:"imagenes/limonada1.jpg",
+
+name:"Limonada natural",
+
+category:"🥤 Bebidas",
+
+price:7000,
+
+icon:"🍋",
+
+description:"Bebida preparada con limón natural, agua, hielo y azúcar.",
+
+extras:["Sin azúcar","Poca azúcar","Hielo aparte"]
+
+},
+
+{
+
+id:14,
+
+image:"imagenes/gaseosa1.jpg",
+
+name:"Gaseosa",
+
+category:"🥤 Bebidas",
+
+price:5000,
+
+icon:"🥤",
+
+description:"Bebida gaseosa refrescante servida fría.",
+
+extras:["Sin hielo","Hielo aparte"]
+
+},
+
+{
+
+id:15,
+
+image:"imagenes/jugo1.jpg",
+
+name:"Jugo natural",
+
+category:"🥤 Bebidas",
+
+price:8000,
+
+icon:"🧃",
+
+description:"Jugo preparado con fruta natural, agua o leche y azúcar.",
+
+extras:["Con agua","Con leche","Sin azúcar","Poca azúcar"]
+
+}
+
+];
+let menu = defaultMenu.map(p=>({...p,soldOut:false}));
+let cart = {};
+let activeCategory = "Todos";
+const $ = id => document.getElementById(id);
+const money = n => new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",maximumFractionDigits:0}).format(n);
+function showOnly(id){["home","delivery","reservation"].forEach(k=>$(k).classList.toggle("hidden",k!==id));window.scrollTo({top:0,behavior:"smooth"});}
+function openDelivery(){showOnly("delivery");renderCategories();renderMenu();}
+function openReservation(){showOnly("reservation");const d=new Date();$("res-date").min=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);}
+function goHome(){showOnly("home");}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function categories(){return ["Todos",...new Set(menu.map(p=>p.category||"⭐ Otros"))];}
+function renderCategories(){$("categories").innerHTML=categories().map(c=>`<button class="cat ${c===activeCategory?"active":""}" onclick="setCategory('${esc(c).replace(/'/g,"\\'")}')">${esc(c)}</button>`).join("");}
+function setCategory(c){activeCategory=c;renderCategories();renderMenu();}
+function renderMenu(){
+ const list=menu.filter(p=>activeCategory==="Todos"||(p.category||"⭐ Otros")===activeCategory);
+ $("menu-grid").innerHTML=list.map(p=>{
+  const q=cart[p.id]||0, unavailable=Boolean(p.soldOut);
+  return `<article class="food"><img src="${esc(p.image||"")}" alt="${esc(p.name)}" onerror="this.style.visibility='hidden'"><div><h3>${esc(p.name)}</h3><p>${esc(p.description||"")}</p><div class="food-bottom"><span class="price">${money(Number(p.price)||0)}</span><div class="qty">${unavailable?'<span style="color:#b33;font-size:11px">Agotado</span>':`<button aria-label="Quitar ${esc(p.name)}" onclick="changeQty(${Number(p.id)},-1)">−</button><span>${q}</span><button aria-label="Agregar ${esc(p.name)}" onclick="changeQty(${Number(p.id)},1)">+</button>`}</div></div></div></article>`;
+ }).join("")||'<div class="empty">No hay productos en esta categoría.</div>';
+}
+function changeQty(id,delta){const p=menu.find(x=>String(x.id)===String(id));if(!p||p.soldOut)return;cart[id]=Math.max(0,(cart[id]||0)+delta);if(!cart[id])delete cart[id];renderMenu();renderCart();}
+function renderCart(){
+ const items=menu.filter(p=>cart[p.id]>0);const total=items.reduce((s,p)=>s+Number(p.price)*cart[p.id],0);
+ $("cart-lines").className=items.length?"":"empty";
+ $("cart-lines").innerHTML=items.length?items.map(p=>`<div class="cart-line"><span>${cart[p.id]} × ${esc(p.name)}</span><strong>${money(Number(p.price)*cart[p.id])}</strong></div>`).join(""):"Todavía no has agregado productos.";
+ $("cart-total").textContent=money(total);
+}
+function validatePhone(v){return /^[+0-9\s()-]{7,20}$/.test(v.trim());}
+function sendDelivery(){
+ const items=menu.filter(p=>cart[p.id]>0);
+ const name=$("delivery-name").value.trim(),phone=$("delivery-phone").value.trim(),address=$("delivery-address").value.trim(),description=$("delivery-description").value.trim();
+ if(!items.length){alert("Agrega al menos un producto al pedido.");return;}
+ if(!name||!phone||!address){alert("Completa tu nombre, celular y dirección.");return;}
+ if(!validatePhone(phone)){alert("Escribe un número de celular válido.");return;}
+ const total=items.reduce((s,p)=>s+Number(p.price)*cart[p.id],0);
+ const lines=items.map(p=>`• ${cart[p.id]} x ${p.name} — ${money(Number(p.price)*cart[p.id])}`);
+ const msg=["¡Hola! Quiero realizar un pedido a domicilio en Sabor Digital.","",...lines,"",`Total: ${money(total)}`,"",`Nombre: ${name}`,`Celular: ${phone}`,`Dirección: ${address}`,`Indicaciones: ${description||"Ninguna"}`].join("\n");
+ window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`,"_blank","noopener");
+}
+function confirmReservation(){
+ const people=$("res-people").value,phone=$("res-phone").value.trim(),date=$("res-date").value,time=$("res-time").value;
+ if(!people||!phone||!date||!time){alert("Completa cantidad de personas, celular, día y hora.");return;}
+ if(!validatePhone(phone)){alert("Escribe un número de celular válido.");return;}
+ const chosen=new Date(date+"T"+time);
+ if(Number.isNaN(chosen.getTime())||chosen.getTime()<Date.now()){alert("Selecciona una fecha y hora futura.");return;}
+ const prettyDate=new Date(date+"T12:00:00").toLocaleDateString("es-CO",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+ const msg=["¡Hola! Quiero solicitar una reserva en Sabor Digital.","",`Personas: ${people}`,`Día: ${prettyDate}`,`Hora de llegada: ${time}`,`Celular: ${phone}`,"","Por favor, confirmen la disponibilidad. ¡Gracias!"].join("\n");
+ window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`,"_blank","noopener");
+}
+async function loadLiveMenu(){
+ if(!sb)return;
+ try{
+  const {data,error}=await sb.from("products").select("*").order("id",{ascending:true});
+  if(error)throw error;
+  if(data&&data.length){menu=data.map(row=>({id:row.id,name:row.name,category:row.category||"⭐ Otros",price:Number(row.price||0),description:row.description||"",image:row.image_url||"",soldOut:Boolean(row.sold_out),icon:(row.category||"").split(" ")[0]||"🍽️"}));renderCategories();renderMenu();renderCart();}
+  sb.channel("sabor-digital-whatsapp-menu").on("postgres_changes",{event:"*",schema:"public",table:"products"},loadLiveMenu).subscribe();
+ }catch(e){console.warn("Se muestra el menú inicial porque no se pudo sincronizar con Supabase.",e);}
+}
+renderCategories();renderMenu();renderCart();loadLiveMenu();
+</script>
+</body>
+</html>
